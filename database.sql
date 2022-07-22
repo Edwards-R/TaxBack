@@ -10,39 +10,45 @@ CREATE TABLE taxonomy.rank (
 	major_parent INT NOT NULL,
 	direct_parent INT NOT NULL,
 	display_name TEXT NOT NULL,
+	is_major BOOLEAN NOT NULL,
 	CONSTRAINT major_parent FOREIGN KEY(major_parent) REFERENCES taxonomy.rank(id) DEFERRABLE INITIALLY DEFERRED,
 	CONSTRAINT direct_parent FOREIGN KEY(direct_parent) REFERENCES taxonomy.rank(id) DEFERRABLE INITIALLY DEFERRED
 );
 
-insert into taxonomy.rank (name, major_parent, direct_parent, display_name)
+insert into taxonomy.rank (name, major_parent, direct_parent, display_name, is_major)
 VALUES (
 	'capstone',
 	1,
 	1, 
-	'Capstone'
+	'Capstone',
+	TRUE
 ),(
 	'superfamily',
 	1,
 	1,
-	'Superfamily'
+	'Superfamily',
+	TRUE
 )
 ,(
 	'family',
 	2,
 	2,
-	'Family'
+	'Family',
+	TRUE
 )
 ,(
 	'genus',
 	3,
 	3,
-	'Genus'
+	'Genus',
+	TRUE
 )
 ,(
 	'species',
 	4,
 	4,
-	'Species'
+	'Species',
+	TRUE
 );
 
 -- Create the rank tables

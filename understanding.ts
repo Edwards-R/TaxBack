@@ -154,4 +154,13 @@ export default class Understanding{
             return false;
         }
     }
+
+    public async AddType(typeID: number){
+        const queryText = "INSERT INTO taxonomy."+this.rank.name+"_type (species, type) VALUES ($species, $type)";
+        // Usual 'no this'
+        const understanding_id: number = this.id;
+        const result = await db.Query(queryText, {understanding_id, typeID});
+        const result2 = await db.Query(queryText, {this:this.id, typeID});
+        console.log(result);
+    }
 }
