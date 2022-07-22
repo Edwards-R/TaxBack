@@ -1,0 +1,1 @@
+type_manager.ts has an oddity in 'assign type'. This should not be done here as it involves a modification of the 'local' storage. type_manager is ONLY concerned with the non-local 'type' storage

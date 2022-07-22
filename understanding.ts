@@ -11,7 +11,7 @@ export default class Understanding{
     private _parent: number;
     private _current: number;
     /*
-     * Types are a 'not always needed' thing, but since they can't change then they can be cached once pull
+     * Types are a 'not always needed' thing, but since they can't change then they can be cached once pulled
      * from the database. It's a 'lazy initialisation' - they are fetched when required rather than at
      * construction. Most queries won't care about the types, so 'lazy' querying will save a ton of database time
      * 
