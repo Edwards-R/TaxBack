@@ -1,0 +1,49 @@
+New problem:
+
+If a something is split, then a component of that split is split, where do the splits go to?
+
+e.g.
+
+A1 -> A2, B1, Aagg
+B1 -> B2, C1, Bagg
+
+Aagg implicitly contains Bagg
+
+I've solved this before and I can't remember what I did. It came out elegantly.
+
+Pretty sure it came out to 'An aggregate understanding is a compound of multiple other understandings'
+
+This means that there needs to be a table that stores the Understandings that make up this understanding
+
+I *could* make this explicit on every single entry, but should I?
+
+
+
+Arguments for Yes:
+
+It's got an elegance to it: everything is uniform, everything belongs
+
+
+
+Arguments for No:
+
+It's a waste of space <--- Is this even an argument?
+It's duplication of information <--- is it though?
+
+I suppose in most cases it is a duplication of information, but is this a bad thing
+
+---
+
+I dislike the idea that a piece of software is required to understand Understandings an understanding is made of <--- This one. Right here.
+
+
+The rule is that the database should be able to exist without requiring extra software. The answer is therefore that each rank needs ANOTHER table.
+This table should be <rank>_composition
+
+---
+
+So heirarchy ranks cause a problem in the database when you try to enforce unique direct parentage i.e. you can't have a rank with multiple direct children.
+I don't think there's a solution to this, which sucks. The direct parent of the top entry has to either be itself or null.
+
+Allowing nulls as direct parents is no. Nulls would also break the foreign key constraint
+Removing the unique requirement is the lesser of evils.
