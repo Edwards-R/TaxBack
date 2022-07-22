@@ -72,9 +72,12 @@ export default class Understanding{
         if (currentOnly){
             queryText += " AND id = current";
         }
-
-        const useID = this.id; // Typescript and queries and not letting me use this.id so... IDK
-        const result = await db.Query(queryText, {useID});
+        const result = await db.Query(
+            queryText,
+            {
+                useID:this.id
+            }
+        );
         const understandings: Understanding[] = new Array<Understanding>();
         result.rows.forEach(row => {
             understandings.push(
@@ -92,19 +95,24 @@ export default class Understanding{
         return understandings;
     }
 
+    /**
+     * Updates the understanding to be a synonym that points to another.
+     * Will also point anything that is a synonym of this to the new understanding
+     * @param value The ID of the new current understanding
+     */
     public async UpdateCurrent(value: number){
 
         // Try/catch used to ensure synchrony between value and database
         // Database responsible for ensuring that foreign key exists
-
-        const id = this.id; // That annoying 'no this' problem
         const queryText = "UPDATE " + this._rank.name + " SET current = $value WHERE id = $id";
         try {
-            await db.Query(queryText, {
-                    value,
-                    id,
+            await db.Query(
+                queryText, {
+                    value: value,
+                    id: this.id,
                 }
             );
+            // Then update the local
             this._current = value;
         }catch (e){
             console.log(e);
@@ -121,9 +129,13 @@ export default class Understanding{
      */
     private async FetchTypeIDs(): Promise<number[]>{
         // The old 'can't use this'
-        const useID = this._id;
         const queryText = this._rank.queryTypeString + this._rank.name + " = {id}";
-        const result = await db.Query(queryText, {useID});
+        const result = await db.Query(
+            queryText,
+            {
+                id: this._id
+            }
+        );
         const types: number[] = new Array<number>();
         result.rows.forEach(row => {
             types.push(row[0] as number);
@@ -155,12 +167,23 @@ export default class Understanding{
         }
     }
 
+    /*
+     * This should do a check for >1 types vs does the name end in 'agg'
+    */
+
+    /**
+     * 
+     * @param typeID The ID of the type to be added to this understanding
+     */
     public async AddType(typeID: number){
-        const queryText = "INSERT INTO taxonomy."+this.rank.name+"_type (species, type) VALUES ($species, $type)";
-        // Usual 'no this'
-        const understanding_id: number = this.id;
-        const result = await db.Query(queryText, {understanding_id, typeID});
-        const result2 = await db.Query(queryText, {this:this.id, typeID});
+        const queryText = "INSERT INTO taxonomy."+this.rank.name+"_type (species, type) VALUES ($understanding, $type)";
+        const result = await db.Query(
+            queryText,
+            {
+                understanding: this.id,
+                type: typeID
+            }
+        );
         console.log(result);
     }
 }
