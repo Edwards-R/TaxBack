@@ -6,7 +6,7 @@ CREATE SCHEMA taxonomy;
 
 CREATE TABLE taxonomy.rank (
 	id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	name TEXT NOT NULL,
+	name TEXT NOT NULL UNIQUE,
 	major_parent INT NOT NULL,
 	direct_parent INT NOT NULL,
 	display_name TEXT NOT NULL,
@@ -61,7 +61,8 @@ CREATE TABLE taxonomy.capstone(
 	parent INT NOT NULL,
 	current INT NOT NULL,
 	CONSTRAINT parent FOREIGN KEY(parent) REFERENCES taxonomy.capstone(id),
-	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.capstone(id) DEFERRABLE INITIALLY DEFERRED
+	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.capstone(id) DEFERRABLE INITIALLY DEFERRED,
+	CONSTRAINT composite UNIQUE(name, author, year)
 );
 
 CREATE TABLE taxonomy.superfamily(
@@ -72,7 +73,8 @@ CREATE TABLE taxonomy.superfamily(
 	parent INT NOT NULL,
 	current INT NOT NULL,
 	CONSTRAINT parent FOREIGN KEY(parent) REFERENCES taxonomy.capstone(id),
-	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.superfamily(id) DEFERRABLE INITIALLY DEFERRED
+	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.superfamily(id) DEFERRABLE INITIALLY DEFERRED,
+	CONSTRAINT composite UNIQUE(name, author, year)
 );
 
 CREATE TABLE taxonomy.family(
@@ -83,7 +85,8 @@ CREATE TABLE taxonomy.family(
 	parent INT NOT NULL,
 	current INT NOT NULL,
 	CONSTRAINT parent FOREIGN KEY(parent) REFERENCES taxonomy.superfamily(id),
-	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.family(id) DEFERRABLE INITIALLY DEFERRED
+	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.family(id) DEFERRABLE INITIALLY DEFERRED,
+	CONSTRAINT composite UNIQUE(name, author, year)
 );
 
 CREATE TABLE taxonomy.genus(
@@ -94,7 +97,8 @@ CREATE TABLE taxonomy.genus(
 	parent INT NOT NULL,
 	current INT NOT NULL,
 	CONSTRAINT parent FOREIGN KEY(parent) REFERENCES taxonomy.family(id),
-	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.genus(id) DEFERRABLE INITIALLY DEFERRED
+	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.genus(id) DEFERRABLE INITIALLY DEFERRED,
+	CONSTRAINT composite UNIQUE(name, author, year)
 );
 
 CREATE TABLE taxonomy.species(
@@ -105,7 +109,8 @@ CREATE TABLE taxonomy.species(
 	parent INT NOT NULL,
 	current INT NOT NULL,
 	CONSTRAINT parent FOREIGN KEY(parent) REFERENCES taxonomy.genus(id),
-	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.species(id) DEFERRABLE INITIALLY DEFERRED
+	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.species(id) DEFERRABLE INITIALLY DEFERRED,
+	CONSTRAINT composite UNIQUE(name, author, year)
 );
 
 
@@ -302,7 +307,7 @@ AND c.name not like '%agg'
 AND o.author like 'Seifert'
 AND o.year = 2018;
 
--- Deal with Andrena pilipes agg iso. Else & Edwards: 2018 
+-- Deal with Andrena pilipes agg iso. Else & Edwards: 2018
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -372,6 +377,8 @@ AND o.year = 2008;
 -- Deal with T. caespitum iso: Schlick-Steiner: 2006, only has one member which can't be the case any more
 
 -- Deal with O. inermis, parietina iso: Amiet et al: 2004. Too many to pick from
+-- Merge O. inermis agg iso: Amiet et al and O. parietina agg iso: Amiet et al into O. parietina iso: BWARS: 2022
+--     Components are O. inermis iso Amiet et al, O. parietina Amiet et al, O. uncinata Else & Edwards
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -380,7 +387,8 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Falk'
-AND o.year = 2004;
+AND o.year = 2004,
+AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -389,11 +397,13 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Csösz & Seifert'
-AND o.year = 2003;
+AND o.year = 2003,
+AND c.id=c.current;
 
--- Deal with Bitsch et al: 2001. Multiple options and multiple entries
+-- Deal with Bitsch et al: 2001. Multiple options and multiple entries done
 
 -- Deal with Vikberg 2000, multiple options
+-- Waiting on more info
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -402,9 +412,18 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Dubois'
-AND o.year = 1998;
+AND o.year = 1998,
+AND c.id=c.current;
 
--- Deal with Baker 1994
+INSERT INTO taxonomy.species_composition (subject, component)
+select o.id, c.id
+from taxonomy.species o
+JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
+WHERE o.name like '%agg'
+AND c.name not like '%agg'
+AND o.author like 'Baker'
+AND o.year = 1994
+AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -413,7 +432,8 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Seifert'
-AND o.year = 1992;
+AND o.year = 1992,
+AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -422,9 +442,8 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Pulawski'
-AND o.year = 1984;
-
--- Deal with Morgan 1984
+AND o.year = 1984,
+AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -433,11 +452,8 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Elmes'
-AND o.year = 1978;
-
--- Deal with Guiglia 1972, only has one option
-
--- Deal with Sladen 1912, only has one option
+AND o.year = 1978,
+AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -446,6 +462,7 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Saunders'
-AND o.year = 1900;
+AND o.year = 1900,
+AND c.id=c.current;
 
 -- Deal with Tachysphex unicolor agg, Unknown author, unknown year, so can't automate finding components

@@ -1,1 +1,1 @@
-type_manager.ts has an oddity in 'assign type'. This should not be done here as it involves a modification of the 'local' storage. type_manager is ONLY concerned with the non-local 'type' storage
+Rewrite aggregate composition functions in  SQL to take specific names. Too much going on with aggregates that are not current and things failing with non-current components
