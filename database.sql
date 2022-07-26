@@ -52,6 +52,7 @@ VALUES (
 );
 
 -- Create the rank tables
+-- UNIQUE constraints are global so can't share names
 
 CREATE TABLE taxonomy.capstone(
 	id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -62,7 +63,7 @@ CREATE TABLE taxonomy.capstone(
 	current INT NOT NULL,
 	CONSTRAINT parent FOREIGN KEY(parent) REFERENCES taxonomy.capstone(id),
 	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.capstone(id) DEFERRABLE INITIALLY DEFERRED,
-	CONSTRAINT composite UNIQUE(name, author, year)
+	CONSTRAINT capstone_composite UNIQUE(name, author, year, parent)
 );
 
 CREATE TABLE taxonomy.superfamily(
@@ -74,7 +75,7 @@ CREATE TABLE taxonomy.superfamily(
 	current INT NOT NULL,
 	CONSTRAINT parent FOREIGN KEY(parent) REFERENCES taxonomy.capstone(id),
 	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.superfamily(id) DEFERRABLE INITIALLY DEFERRED,
-	CONSTRAINT composite UNIQUE(name, author, year)
+	CONSTRAINT superfamily_composite UNIQUE(name, author, year, parent)
 );
 
 CREATE TABLE taxonomy.family(
@@ -86,7 +87,7 @@ CREATE TABLE taxonomy.family(
 	current INT NOT NULL,
 	CONSTRAINT parent FOREIGN KEY(parent) REFERENCES taxonomy.superfamily(id),
 	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.family(id) DEFERRABLE INITIALLY DEFERRED,
-	CONSTRAINT composite UNIQUE(name, author, year)
+	CONSTRAINT family_composite UNIQUE(name, author, year, parent)
 );
 
 CREATE TABLE taxonomy.genus(
@@ -98,7 +99,7 @@ CREATE TABLE taxonomy.genus(
 	current INT NOT NULL,
 	CONSTRAINT parent FOREIGN KEY(parent) REFERENCES taxonomy.family(id),
 	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.genus(id) DEFERRABLE INITIALLY DEFERRED,
-	CONSTRAINT composite UNIQUE(name, author, year)
+	CONSTRAINT genus_composite UNIQUE(name, author, year, parent)
 );
 
 CREATE TABLE taxonomy.species(
@@ -110,7 +111,7 @@ CREATE TABLE taxonomy.species(
 	current INT NOT NULL,
 	CONSTRAINT parent FOREIGN KEY(parent) REFERENCES taxonomy.genus(id),
 	CONSTRAINT current FOREIGN KEY(current) REFERENCES taxonomy.species(id) DEFERRABLE INITIALLY DEFERRED,
-	CONSTRAINT composite UNIQUE(name, author, year)
+	CONSTRAINT species_composite UNIQUE(name, author, year, parent)
 );
 
 
@@ -289,6 +290,18 @@ INSERT INTO taxonomy.species_composition (subject, component) select id, id FROM
 -- It is not possible to set the composition of aggregates autonomously. The information simply doesn't exist anywhere in any system
 -- This isn't surprising as it's a deficit this new system specifically aims to correct
 
+/*
+ * This is a query that will find any aggregate which does not have components set
+ 	SELECT *
+	FROM taxonomy.species
+	WHERE id NOT IN (
+	SELECT s.id
+	FROM taxonomy.species_composition sc
+	JOIN taxonomy.species s ON sc.subject = s.id
+	WHERE s.name like '%agg')
+	AND name like '%agg'
+*/
+
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
 from taxonomy.species o
@@ -296,7 +309,8 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Falk et al'
-AND o.year = 2019;
+AND o.year = 2019
+AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -305,9 +319,24 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Seifert'
-AND o.year = 2018;
+AND o.year = 2018
+AND c.id=c.current;
 
--- Deal with Andrena pilipes agg iso. Else & Edwards: 2018
+-- Manual selection
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like 'pilipes agg'
+	AND o.author like 'Else & Edwards'
+	AND o.year = 2018
+	AND c.name in (
+		'nigrospina',
+		'pilipes'
+	);
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -316,7 +345,8 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Notton & Norman'
-AND o.year = 2017;
+AND o.year = 2017
+AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -325,9 +355,57 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Schmid-Egger'
-AND o.year = 2016;
+AND o.year = 2016
+AND c.id=c.current;
 
--- Deal with the Chrysid block: ignita, mediata, niemelai iso Paukkunnen et al: 2015
+-- Manual selection for Paukkunnen et al block
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, o.name, c.id, c.name
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like 'niemelai agg'
+	AND o.author like 'Paukkunnen et al'
+	AND o.year = 2015
+	AND c.name in (
+		'niemelai',
+		'nobile'
+	);
+
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like 'mediata agg'
+	AND o.author like 'Paukkunnen et al'
+	AND o.year = 2015
+	AND c.name in (
+		'mediata',
+		'solida'
+	);
+
+-- Check to see if terminata should be in here
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like 'ignita agg'
+	AND o.author like 'Paukkunnen et al'
+	AND o.year = 2015
+	AND c.name in (
+		'ignita',
+		'angustula',
+		'impressa',
+		'schencki'
+	);
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -336,7 +414,8 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Edwards'
-AND o.year = 2013;
+AND o.year = 2013
+AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -345,16 +424,24 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Seifert'
-AND o.year = 2012;
+AND o.year = 2012
+AND c.id=c.current;
 
+-- Manual selection
 INSERT INTO taxonomy.species_composition (subject, component)
-select o.id, c.id
-from taxonomy.species o
-JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
-WHERE o.name like '%agg'
-AND c.name not like '%agg'
-AND o.author like 'Smissen'
-AND o.year = 2010;
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like 'rutiliventris agg'
+	AND o.author like 'Smissen'
+	AND o.year = 2010
+	AND c.name in (
+		'rutiliventris',
+		'vanlithi'
+	);
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -363,7 +450,8 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Notton and Dathe'
-AND o.year = 2008;
+AND o.year = 2008
+AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -372,13 +460,74 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Murray et al'
-AND o.year = 2008;
+AND o.year = 2008
+AND c.id=c.current;
 
 -- Deal with T. caespitum iso: Schlick-Steiner: 2006, only has one member which can't be the case any more
 
--- Deal with O. inermis, parietina iso: Amiet et al: 2004. Too many to pick from
 -- Merge O. inermis agg iso: Amiet et al and O. parietina agg iso: Amiet et al into O. parietina iso: BWARS: 2022
 --     Components are O. inermis iso Amiet et al, O. parietina Amiet et al, O. uncinata Else & Edwards
+
+-- Complex one. This dates back to the founding of the iso system and not getting it perfect (in a large part because
+-- of a lack of foundational information)
+-- O. uncinata from E & E is part of this so needs a separate command
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like 'inermis agg'
+	AND o.author like 'Amiet et al'
+	AND o.year = 2004
+	AND c.name in (
+		'inermis',
+		'parietina'
+	);
+
+-- Add O. uncinata iso. Else & Edwards: 1996 to O. inermis agg iso. Amiet et al: 2004
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.parent = c.parent
+WHERE o.name like 'inermis agg'
+	AND c.author like 'Else & Edwards'
+	AND c.year = 1996
+	AND c.name in (
+		'uncinata'
+	);
+
+-- Now repeat the above but for O. parietina agg
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like 'parietina agg'
+	AND o.author like 'Amiet et al'
+	AND o.year = 2004
+	AND c.name in (
+		'inermis',
+		'parietina'
+	);
+
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.parent = c.parent
+WHERE o.name like 'parietina agg'
+	AND c.author like 'Else & Edwards'
+	AND c.year = 1996
+	AND c.name in (
+		'uncinata'
+	);
+
+-- End of inermis/parietina block
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -387,7 +536,7 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Falk'
-AND o.year = 2004,
+AND o.year = 2004
 AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
@@ -397,10 +546,26 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Csösz & Seifert'
-AND o.year = 2003,
+AND o.year = 2003
 AND c.id=c.current;
 
--- Deal with Bitsch et al: 2001. Multiple options and multiple entries done
+-- Deal with Bitsch et al: 2001. Multiple options and multiple entries
+-- Tachysphex
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like 'nitidus agg'
+	AND o.author like 'Bitsch et al'
+	AND o.year = 2001
+	AND c.name in (
+		'nitidus',
+		'unicolor'
+	);
+
 
 -- Deal with Vikberg 2000, multiple options
 -- Waiting on more info
@@ -412,7 +577,7 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Dubois'
-AND o.year = 1998,
+AND o.year = 1998
 AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
@@ -432,7 +597,7 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Seifert'
-AND o.year = 1992,
+AND o.year = 1992
 AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
@@ -442,7 +607,7 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Pulawski'
-AND o.year = 1984,
+AND o.year = 1984
 AND c.id=c.current;
 
 INSERT INTO taxonomy.species_composition (subject, component)
@@ -452,17 +617,16 @@ JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Elmes'
-AND o.year = 1978,
+AND o.year = 1978
 AND c.id=c.current;
 
-INSERT INTO taxonomy.species_composition (subject, component)
-select o.id, c.id
+-- Note not current, this is deliberate
+select o.id, o.name, c.id, c.name
 from taxonomy.species o
 JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Saunders'
-AND o.year = 1900,
-AND c.id=c.current;
+AND o.year = 1900
 
 -- Deal with Tachysphex unicolor agg, Unknown author, unknown year, so can't automate finding components

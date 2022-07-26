@@ -1,1 +1,17 @@
-Rewrite aggregate composition functions in  SQL to take specific names. Too much going on with aggregates that are not current and things failing with non-current components
+Finish adding aggregates
+
+This is currently waiting on the debugging of the entire code package to enable composite uniqueness
+
+A problem: Something somewhere in the species migration code, stuff is being duplicated
+
+
+SELECT s.name, s.isoauth, s.isoyear, np.id, nc.id
+FROM public.species s
+JOIN public.genus op ON s.higherid = op.id
+JOIN taxonomy.genus np ON op.name = np.name AND op.isoauth = np.author AND op.isoyear = np.year
+JOIN public.species oc ON s.current_understanding = oc.id
+JOIN taxonomy.species nc ON oc.name = nc.name AND oc.isoauth = nc.author AND oc.isoyear = nc.year
+WHERE s.id != s.current_understanding
+AND np.id = 162
+
+This shows it
