@@ -227,25 +227,36 @@ CREATE TRIGGER insert_understanding BEFORE INSERT ON taxonomy.species
 FOR EACH ROW EXECUTE FUNCTION insert_understanding();
 
 
--- Set up the ranks for NON-AGGREGATE
+-- Set up the ranks and translation tables for NON-AGGREGATE
 
 insert into taxonomy.capstone (name, author, year, parent) VALUES ('BWARS', 'BWARS', '2022',1);
 
 INSERT INTO taxonomy.superfamily (name, author, year, parent) SELECT name, isoauth, isoyear, 1 FROM public.superfamily;
 
+CREATE table taxonomy.superfamily_translate AS 
+SELECT n.id as new, o.id as old
+FROM taxonomy.superfamily n
+JOIN superfamily o ON n.name = o.name AND n.author = o.isoauth AND n.year = o.isoyear;
+
 INSERT INTO taxonomy.family (name, author, year, parent)
-SELECT s.name, s.isoauth, s.isoyear, np.id
-FROM public.family s
-JOIN public.superfamily op ON s.higherid = op.id
-JOIN taxonomy.superfamily np ON op.name = np.name AND op.isoauth = np.author AND op.isoyear = np.year
-WHERE s.name NOT LIKE '%agg';
+SELECT o.name, o.isoauth, o.isoyear, t.new
+FROM public.family o
+JOIN taxonomy.superfamily_translate t ON o.higherid = t.old;
+
+CREATE table taxonomy.family_translate AS 
+SELECT n.id as new, o.id as old
+FROM taxonomy.family n
+JOIN public.family o ON n.name = o.name AND n.author = o.isoauth AND n.year = o.isoyear;
 
 INSERT INTO taxonomy.genus (name, author, year, parent)
-SELECT s.name, s.isoauth, s.isoyear, np.id
-FROM public.genus s
-JOIN public.family op ON s.higherid = op.id
-JOIN taxonomy.family np ON op.name = np.name AND op.isoauth = np.author AND op.isoyear = np.year
-WHERE s.name NOT LIKE '%agg';
+SELECT o.name, o.isoauth, o.isoyear, t.new
+FROM public.genus o
+JOIN taxonomy.family_translate t ON o.higherid = t.old;
+
+CREATE table taxonomy.genus_translate AS 
+SELECT n.id as new, o.id as old
+FROM taxonomy.genus n
+JOIN public.genus o ON n.name = o.name AND n.author = o.isoauth AND n.year = o.isoyear;
 
 -- Species
 
@@ -256,22 +267,30 @@ WHERE s.name NOT LIKE '%agg';
 --Start by transferring all of the non-synonym species
 
 INSERT INTO taxonomy.species (name, author, year, parent)
-SELECT s.name, s.isoauth, s.isoyear, np.id
-FROM public.species s
-JOIN public.genus op ON s.higherid = op.id
-JOIN taxonomy.genus np ON op.name = np.name AND op.isoauth = np.author AND op.isoyear = np.year
-WHERE s.id = s.current_understanding;
+SELECT o.name, o.isoauth, o.isoyear, pt.new
+FROM public.species o
+JOIN taxonomy.genus_translate pt ON o.higherid = pt.old
+WHERE o.id = o.current_understanding;
+
+-- Make the translation table now since synonyms use this
+CREATE table taxonomy.species_translate AS 
+SELECT n.id as new, o.id as old
+FROM taxonomy.species n
+JOIN taxonomy.genus_translate pt ON n.parent = pt.new
+JOIN public.species o ON n.name = o.name AND n.author = o.isoauth AND n.year = o.isoyear AND pt.old = o.higherid AND o.id = o.current_understanding;
 
 -- Now that all end points are in, add the synonym species that rely on those end points
 
 INSERT INTO taxonomy.species (name, author, year, parent, current)
-SELECT s.name, s.isoauth, s.isoyear, np.id, nc.id
-FROM public.species s
-JOIN public.genus op ON s.higherid = op.id
-JOIN taxonomy.genus np ON op.name = np.name AND op.isoauth = np.author AND op.isoyear = np.year
-JOIN public.species oc ON s.current_understanding = oc.id
-JOIN taxonomy.species nc ON oc.name = nc.name AND oc.isoauth = nc.author AND oc.isoyear = nc.year
-WHERE s.id != s.current_understanding;
+SELECT o.name, o.isoauth, o.isoyear, pt.new, ct.new
+FROM public.species o
+JOIN taxonomy.genus_translate pt ON o.higherid = pt.old
+JOIN taxonomy.species_translate ct on o.current_understanding = ct.old
+WHERE o.id NOT IN (
+	SELECT old FROM taxonomy.species_translate
+)
+
+-- git commit 20220729 11:00 (ish)
 
 -- Now set up the composition for non-aggregate taxa
 -- Only species have aggregates right now so we can be a little cheap with the other ranks

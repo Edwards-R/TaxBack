@@ -4,14 +4,91 @@ This is currently waiting on the debugging of the entire code package to enable 
 
 A problem: Something somewhere in the species migration code, stuff is being duplicated
 
+Genera are ok, checked the insert number vs count.
 
-SELECT s.name, s.isoauth, s.isoyear, np.id, nc.id
-FROM public.species s
-JOIN public.genus op ON s.higherid = op.id
-JOIN taxonomy.genus np ON op.name = np.name AND op.isoauth = np.author AND op.isoyear = np.year
-JOIN public.species oc ON s.current_understanding = oc.id
-JOIN taxonomy.species nc ON oc.name = nc.name AND oc.isoauth = nc.author AND oc.isoyear = nc.year
-WHERE s.id != s.current_understanding
-AND np.id = 162
+The problem comes in species.
 
-This shows it
+Total:  1609 species
+        702 current
+        907 synonyms
+
+Inserting non-synonymw works fine, does 702
+
+TRANSLATE table is wrong. It adds 725
+
+Added parent checking, now 703 added
+Added 'current only' to old table join, 702 added
+
+Should be able to use a 'not in' from the translation table now to be 100% certain
+Nope, 903...
+
+Going back to checking the import of non-synonyms. Looks fine. Can't find any synonyms or duplicates in it.
+
+Selecting all that are not in the translate brings up 907
+Probably means that there are 4 functional duplicates
+Nope, it's to do with the genera parents. This has 903:
+
+SELECT o.id
+FROM public.species o
+JOIN taxonomy.genus_translate pt ON o.higherid = pt.old
+JOIN taxonomy.species_translate ct ON o.current_understanding = ct.old
+WHERE o.id NOT IN
+(SELECT old FROM taxonomy.species_translate)
+
+But without the genus parent it has 903
+No idea wtf is happening. Original data doesn't seem to have a disconnect
+
+Checked where the old IS in the translate table: 702. That's good at least
+
+So there's a problem in the synonyms somewhere. Start by finding the four that get missed:
+
+SELECT *
+FROM species s
+WHERE s.current_understanding != s.id
+AND s.id NOT IN (
+
+SELECT o.id
+FROM public.species o
+JOIN taxonomy.genus_translate pt ON o.higherid = pt.old
+JOIN taxonomy.species_translate ct ON o.current_understanding = ct.old
+WHERE o.id NOT IN
+(SELECT old FROM taxonomy.species_translate)
+)
+
+Postgres is starting to get very confused at this point. Proceed with caution
+
+FOUND IT!
+
+The problem is that these are species which direct to a synonym. Fixing it now
+
+0 now get missed
+
+907 now found by the insert command
+
+NB > No need to do more with translate tables at this point. Everything is going to be in after the synonyms are added
+Anything that needs to be done next should be done on the new data, the old data is deprecated.
+
+INSERT INTO taxonomy.species (name, author, year, parent, current)
+SELECT o.name, o.isoauth, o.isoyear, pt.new, ct.new
+FROM public.species o
+JOIN taxonomy.genus_translate pt ON o.higherid = pt.old
+JOIN taxonomy.species_translate ct on o.current_understanding = ct.old
+WHERE o.id NOT IN (
+	SELECT old FROM taxonomy.species_translate
+)
+
+This throws up duplications which need to be dealt with.
+
+NOTE WHAT IS DONE TO EVERY TAXA
+
+Nomada alternata - No uses for either. Seems to be a very old synonym that is utterly ambiguous (other sites points it to pretty much everything)
+Should be an aggregate but too old to both with
+2 Removed
+
+Crossocerus leucostoma - Seems to be a duplicate of a synonym with current. 2 records direct to the synonym, not sure how this even happened. I suspect
+this is old and part of what the new system removes from happening.
+Updated the records of the two that direct to the synonym-but-the-same to direct to the end point, then removed the not-really-synonym
+UPDATE: Sort of did. I forgot that I had an update parent-child routine still running. It works by the way. Very well.
+Deleted the old records to leave only the new
+
+Inserted 904 + 2 Nomada alternata + 1 Crossocerus leucostoma = 907 = success!!
