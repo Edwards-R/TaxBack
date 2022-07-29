@@ -1,94 +1,30 @@
-Finish adding aggregates
+Clean slate!
+So. Now it's species composition that needs to be filled in. There's a few holes in aggregates:
 
-This is currently waiting on the debugging of the entire code package to enable composite uniqueness
+Chrysis ignita agg iso. Paukkunnen et al: 2015
+    Does this aggregate also contain C. terminata?
+    YES, change this
 
-A problem: Something somewhere in the species migration code, stuff is being duplicated
+There's an option to fix a weird thing, but it needs a note in the BWARS newsletter:
+-- Merge O. inermis agg iso: Amiet et al and O. parietina agg iso: Amiet et al into O. parietina iso: BWARS: 2022
+--     Components are O. inermis iso Amiet et al, O. parietina Amiet et al, O. uncinata Else & Edwards
 
-Genera are ok, checked the insert number vs count.
+These two are functionally identical and only one should have been used. The question is 'is it worth the disruption to combine them?' I'm leaning towards no -
+it's a fault, but it's a harmless one
 
-The problem comes in species.
-
-Total:  1609 species
-        702 current
-        907 synonyms
-
-Inserting non-synonymw works fine, does 702
-
-TRANSLATE table is wrong. It adds 725
-
-Added parent checking, now 703 added
-Added 'current only' to old table join, 702 added
-
-Should be able to use a 'not in' from the translation table now to be 100% certain
-Nope, 903...
-
-Going back to checking the import of non-synonyms. Looks fine. Can't find any synonyms or duplicates in it.
-
-Selecting all that are not in the translate brings up 907
-Probably means that there are 4 functional duplicates
-Nope, it's to do with the genera parents. This has 903:
-
-SELECT o.id
-FROM public.species o
-JOIN taxonomy.genus_translate pt ON o.higherid = pt.old
-JOIN taxonomy.species_translate ct ON o.current_understanding = ct.old
-WHERE o.id NOT IN
-(SELECT old FROM taxonomy.species_translate)
-
-But without the genus parent it has 903
-No idea wtf is happening. Original data doesn't seem to have a disconnect
-
-Checked where the old IS in the translate table: 702. That's good at least
-
-So there's a problem in the synonyms somewhere. Start by finding the four that get missed:
+SQL command: 
 
 SELECT *
-FROM species s
-WHERE s.current_understanding != s.id
-AND s.id NOT IN (
+	FROM taxonomy.species
+	WHERE id NOT IN (
+	SELECT s.id
+	FROM taxonomy.species_composition sc
+	JOIN taxonomy.species s ON sc.subject = s.id
+	WHERE s.name like '%agg')
+	AND name like '%agg'
+	ORDER BY year DESC
 
-SELECT o.id
-FROM public.species o
-JOIN taxonomy.genus_translate pt ON o.higherid = pt.old
-JOIN taxonomy.species_translate ct ON o.current_understanding = ct.old
-WHERE o.id NOT IN
-(SELECT old FROM taxonomy.species_translate)
-)
+This will find any aggregate that isn't in the composition
 
-Postgres is starting to get very confused at this point. Proceed with caution
-
-FOUND IT!
-
-The problem is that these are species which direct to a synonym. Fixing it now
-
-0 now get missed
-
-907 now found by the insert command
-
-NB > No need to do more with translate tables at this point. Everything is going to be in after the synonyms are added
-Anything that needs to be done next should be done on the new data, the old data is deprecated.
-
-INSERT INTO taxonomy.species (name, author, year, parent, current)
-SELECT o.name, o.isoauth, o.isoyear, pt.new, ct.new
-FROM public.species o
-JOIN taxonomy.genus_translate pt ON o.higherid = pt.old
-JOIN taxonomy.species_translate ct on o.current_understanding = ct.old
-WHERE o.id NOT IN (
-	SELECT old FROM taxonomy.species_translate
-)
-
-This throws up duplications which need to be dealt with.
-
-NOTE WHAT IS DONE TO EVERY TAXA
-
-Nomada alternata - No uses for either. Seems to be a very old synonym that is utterly ambiguous (other sites points it to pretty much everything)
-Should be an aggregate but too old to both with
-2 Removed
-
-Crossocerus leucostoma - Seems to be a duplicate of a synonym with current. 2 records direct to the synonym, not sure how this even happened. I suspect
-this is old and part of what the new system removes from happening.
-Updated the records of the two that direct to the synonym-but-the-same to direct to the end point, then removed the not-really-synonym
-UPDATE: Sort of did. I forgot that I had an update parent-child routine still running. It works by the way. Very well.
-Deleted the old records to leave only the new
-
-Inserted 904 + 2 Nomada alternata + 1 Crossocerus leucostoma = 907 = success!!
+T. caespitum agg - this one is a problem. A pre-emptive aggregate, which now shouldn't happen under the new system. Needs a manual fix? Need to suspend the checker
+if I'm going to do this. Can't have stuff come in with an ID that no longer exists.

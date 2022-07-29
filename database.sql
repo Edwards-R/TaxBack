@@ -288,7 +288,7 @@ JOIN taxonomy.genus_translate pt ON o.higherid = pt.old
 JOIN taxonomy.species_translate ct on o.current_understanding = ct.old
 WHERE o.id NOT IN (
 	SELECT old FROM taxonomy.species_translate
-)
+);
 
 -- git commit 20220729 11:00 (ish)
 
@@ -379,7 +379,7 @@ AND c.id=c.current;
 
 -- Manual selection for Paukkunnen et al block
 INSERT INTO taxonomy.species_composition (subject, component)
-SELECT o.id, o.name, c.id, c.name
+SELECT o.id, c.id
 FROM taxonomy.species o
 JOIN taxonomy.species c
 	ON o.author=c.author
@@ -408,7 +408,6 @@ WHERE o.name like 'mediata agg'
 		'solida'
 	);
 
--- Check to see if terminata should be in here
 INSERT INTO taxonomy.species_composition (subject, component)
 SELECT o.id, c.id
 FROM taxonomy.species o
@@ -423,7 +422,8 @@ WHERE o.name like 'ignita agg'
 		'ignita',
 		'angustula',
 		'impressa',
-		'schencki'
+		'schencki',
+		'terminata'
 	);
 
 INSERT INTO taxonomy.species_composition (subject, component)
@@ -586,8 +586,20 @@ WHERE o.name like 'nitidus agg'
 	);
 
 
--- Deal with Vikberg 2000, multiple options
--- Waiting on more info
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like 'curruca agg'
+	AND o.author like 'Vikberg'
+	AND o.year = 2000
+	AND c.name in (
+		'curruca',
+		'differens'
+	);
 
 INSERT INTO taxonomy.species_composition (subject, component)
 select o.id, c.id
@@ -640,12 +652,35 @@ AND o.year = 1978
 AND c.id=c.current;
 
 -- Note not current, this is deliberate
-select o.id, o.name, c.id, c.name
+INSERT INTO taxonomy.species_composition (subject, component)
+select o.id, c.id
 from taxonomy.species o
 JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
 WHERE o.name like '%agg'
 AND c.name not like '%agg'
 AND o.author like 'Saunders'
-AND o.year = 1900
+AND o.year = 1900;
 
--- Deal with Tachysphex unicolor agg, Unknown author, unknown year, so can't automate finding components
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like '%unicolor agg'
+AND c.name not like '%agg'
+AND o.author like 'BWARS'
+AND o.year = 1990;
+
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like '%terrestris agg'
+AND c.name not like '%agg'
+AND o.author like 'Sladen'
+AND o.year = 1912;
