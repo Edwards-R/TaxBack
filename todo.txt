@@ -28,3 +28,13 @@ This will find any aggregate that isn't in the composition
 
 T. caespitum agg - this one is a problem. A pre-emptive aggregate, which now shouldn't happen under the new system. Needs a manual fix? Need to suspend the checker
 if I'm going to do this. Can't have stuff come in with an ID that no longer exists.
+
+Create T. impurum iso. Schlick-Steiner: 2006 and add as component of T. caespitum agg
+
+Merge T. caespitum agg, caespitum, impurum to T. caespitum iso. Seifert: 2018. Create T. impurum iso. Seifert: 2018
+
+Add Lasius psammophilus iso. Seifert: 2007
+
+L alienus is alienus and psammophilus
+
+Myrmica scabrinodis agg is made up of scabrinodis & specioides

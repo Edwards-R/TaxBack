@@ -585,6 +585,21 @@ WHERE o.name like 'nitidus agg'
 		'unicolor'
 	);
 
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like 'littoralis agg'
+	AND o.author like 'Bitsch et al'
+	AND o.year = 2001
+	AND c.name in (
+		'littoralis',
+		'unicolor'
+	);
+
 
 INSERT INTO taxonomy.species_composition (subject, component)
 SELECT o.id, c.id
