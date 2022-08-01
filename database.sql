@@ -294,13 +294,15 @@ WHERE o.id NOT IN (
 
 -- Now fill in the species translation table for the synonyms. Need it to migrate the old data over
 
-INSERT INTO taxonomy.species_translate (new, old) SELECT o.id as old, ns.id as new
-FROM public.species o
-JOIN taxonomy.genus_translate gt ON o.higherid = gt.old
-JOIN taxonomy.species ns on o.isoauth = ns.author AND o.name = ns.name AND o.isoyear = ns.year AND gt.new = ns.parent
-WHERE o.id NOT IN (
-	SELECT old FROM taxonomy.species_translate
-);
+-- New attempt
+
+INSERT INTO taxonomy.species_translate (old, new)
+select o.id, n.id
+FROM taxonomy.species n
+JOIN taxonomy.species_translate nt ON n.current = nt.new
+JOIN taxonomy.genus_translate pt ON n.parent = pt.new
+JOIN species o ON concat(n.name, n.author, n.year, pt.old, nt.old) = concat(o.name, o.isoauth, o.isoyear, o.higherid, current_understanding)
+WHERE n.id != n.current
 
 -- Now set up the composition for non-aggregate taxa
 -- Only species have aggregates right now so we can be a little cheap with the other ranks

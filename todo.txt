@@ -1,40 +1,7 @@
-Clean slate!
-So. Now it's species composition that needs to be filled in. There's a few holes in aggregates:
+UPDATE: It hasn't worked. There are 1603 distinct new and 1596 old. There are also multiple tiks that don't show in the translate table.
 
-Chrysis ignita agg iso. Paukkunnen et al: 2015
-    Does this aggregate also contain C. terminata?
-    YES, change this
+	Back to the drawing board.
 
-There's an option to fix a weird thing, but it needs a note in the BWARS newsletter:
--- Merge O. inermis agg iso: Amiet et al and O. parietina agg iso: Amiet et al into O. parietina iso: BWARS: 2022
---     Components are O. inermis iso Amiet et al, O. parietina Amiet et al, O. uncinata Else & Edwards
+The problem is the synonyms. Current names all check out fine
 
-These two are functionally identical and only one should have been used. The question is 'is it worth the disruption to combine them?' I'm leaning towards no -
-it's a fault, but it's a harmless one
-
-SQL command: 
-
-SELECT *
-	FROM taxonomy.species
-	WHERE id NOT IN (
-	SELECT s.id
-	FROM taxonomy.species_composition sc
-	JOIN taxonomy.species s ON sc.subject = s.id
-	WHERE s.name like '%agg')
-	AND name like '%agg'
-	ORDER BY year DESC
-
-This will find any aggregate that isn't in the composition
-
-T. caespitum agg - this one is a problem. A pre-emptive aggregate, which now shouldn't happen under the new system. Needs a manual fix? Need to suspend the checker
-if I'm going to do this. Can't have stuff come in with an ID that no longer exists.
-
-Create T. impurum iso. Schlick-Steiner: 2006 and add as component of T. caespitum agg -- Done and components made
-
-Merge T. caespitum agg, caespitum, impurum to T. caespitum iso. Seifert: 2018. Create T. impurum iso. Seifert: 2018 -- Not done, waiting till system is transferred
-
-Add Lasius psammophilus iso. Seifert: 2007 -- Done
-
-L alienus is alienus and psammophilus
-
-Myrmica scabrinodis agg is made up of scabrinodis & specioides
+Did a join using concatenated values, seems to have worked. It found one deleted species that was still present in the records. That was purged.
