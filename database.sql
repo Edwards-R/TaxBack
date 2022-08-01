@@ -699,3 +699,43 @@ WHERE o.name like '%terrestris agg'
 AND c.name not like '%agg'
 AND o.author like 'Sladen'
 AND o.year = 1912;
+
+INSERT INTO taxonomy.species_composition (subject, component)
+select o.id, c.id
+from taxonomy.species o
+JOIN taxonomy.species c ON o.author=c.author and o.year = c.year
+WHERE o.name like '%agg'
+AND c.name not like '%agg'
+AND o.author like 'Schlick-Steiner'
+AND o.year = 2006
+AND c.id=c.current;
+
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like 'alienus agg'
+	AND o.author like 'Seifert'
+	AND o.year = 2007
+	AND c.name in (
+		'alienus',
+		'psammophilus'
+	);
+
+INSERT INTO taxonomy.species_composition (subject, component)
+SELECT o.id, c.id
+FROM taxonomy.species o
+JOIN taxonomy.species c
+	ON o.author=c.author
+	AND o.year = c.year
+	AND o.parent = c.parent
+WHERE o.name like 'scabrinodis agg'
+	AND o.author like 'Seifert'
+	AND o.year = 2007
+	AND c.name in (
+		'scabrinodis',
+		'specioides'
+	);
