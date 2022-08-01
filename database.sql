@@ -292,6 +292,16 @@ WHERE o.id NOT IN (
 
 -- git commit 20220729 11:00 (ish)
 
+-- Now fill in the species translation table for the synonyms. Need it to migrate the old data over
+
+INSERT INTO taxonomy.species_translate (new, old) SELECT o.id as old, ns.id as new
+FROM public.species o
+JOIN taxonomy.genus_translate gt ON o.higherid = gt.old
+JOIN taxonomy.species ns on o.isoauth = ns.author AND o.name = ns.name AND o.isoyear = ns.year AND gt.new = ns.parent
+WHERE o.id NOT IN (
+	SELECT old FROM taxonomy.species_translate
+);
+
 -- Now set up the composition for non-aggregate taxa
 -- Only species have aggregates right now so we can be a little cheap with the other ranks
 
@@ -481,8 +491,6 @@ AND c.name not like '%agg'
 AND o.author like 'Murray et al'
 AND o.year = 2008
 AND c.id=c.current;
-
--- Deal with T. caespitum iso: Schlick-Steiner: 2006, only has one member which can't be the case any more
 
 -- Merge O. inermis agg iso: Amiet et al and O. parietina agg iso: Amiet et al into O. parietina iso: BWARS: 2022
 --     Components are O. inermis iso Amiet et al, O. parietina Amiet et al, O. uncinata Else & Edwards
