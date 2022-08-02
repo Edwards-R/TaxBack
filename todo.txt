@@ -5,3 +5,15 @@ UPDATE: It hasn't worked. There are 1603 distinct new and 1596 old. There are al
 The problem is the synonyms. Current names all check out fine
 
 Did a join using concatenated values, seems to have worked. It found one deleted species that was still present in the records. That was purged.
+
+Backup is made
+
+Clear to make the move
+
+Updated database
+
+Trigger reenabled
+
+Exported to checker
+
+Trimmed the checker's species dictionary down from all the crazy stuff in it. 1/3 size now. Also fixed everything to ignore types and just care about understandings
