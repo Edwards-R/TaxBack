@@ -3,8 +3,8 @@
 -- create sub-functions that call this one with prepared level prefixes e.g. CS_Merge_Species
 -- This is ugly though and I don't like it.
 
--- Example call: CALL CS_MERGE(5, 7, ARRAY[1,2,3], 'junk', 'junker', 2022)
-CREATE OR REPLACE PROCEDURE CS_Merge(
+-- Example call: CALL cs_merge(5, 7, ARRAY[1,2,3], 'junk', 'junker', 2022)
+CREATE OR REPLACE PROCEDURE cs_merge(
 	level_id int,
 	parent int,
 	inputs int ARRAY,
@@ -22,6 +22,17 @@ BEGIN
 -- Start by fetching the name of the rank
 SELECT r.name FROM taxonomy.rank r INTO level WHERE r.id = level_id;
 
+-- Check that the inputs have the same parent
+EXECUTE
+	format('SELECT COUNT(*) FROM taxonomy.%I WHERE id = ANY ($1) GROUP BY parent', level)
+	into c
+	USING inputs
+;
+
+IF (c !=1) THEN
+	RAISE EXCEPTION 'Inputs must belong to the same parent taxon';
+END IF;
+
 -- Level exists, now check that all inputs are current and not synonyms
 EXECUTE
 	format('SELECT COUNT(*) FROM taxonomy.%I WHERE id != current AND id = ANY ($1)', level)
@@ -34,12 +45,21 @@ IF (c > 0) THEN
 	RAISE EXCEPTION 'Inputs may not contain synonyms';
 END IF;
 
---Pre-checks completed, make the new entity
+-- Pre-checks completed, make the new entity
 EXECUTE
 	format('INSERT INTO taxonomy.%I (name, author,  year, parent) VALUES ($1, $2, $3, $4) RETURNING id', level)
 	INTO c
 	using name, author, year, parent
 ;
+
+-- Update the old to redirect to the new
+EXCUTE
+	format('UPDATE taxonomy.%I SET current = $1 WHERE id = AND ($2)', level)
+	USING c, inputs
+;
+
+-- Push the current children of the inputs into the new taxa
+
 
 raise notice '%', c;
 
