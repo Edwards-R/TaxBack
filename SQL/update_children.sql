@@ -1,5 +1,6 @@
 /*
  * This function recursively clones the current children of the input to the output
+ * As of 20220815, this function is only aware of major levels
 */
 
 CREATE OR REPLACE PROCEDURE cs_update_children(
@@ -13,22 +14,26 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     c int;
-    child_level int;
+    level_name text;
+    child_level_name text;
     f record;
 BEGIN
 
     -- Check to see if there is a child level
-    IF (SELECT COUNT(*) FROM taxonomy.rank WHERE parent = level) = 0
+    IF (SELECT COUNT(*) FROM taxonomy.rank WHERE major_parent = level) = 0
     THEN
         RETURN;
     END IF;
 
-    -- There's a child level, so get it
-    SELECT id FROM taxonomy.rank INTO child_level WHERE parent = level;
+    -- There's a child level, so get the name so we can find the tables
+    SELECT r.name FROM taxonomy.rank r INTO child_level_name WHERE r.major_parent = level;
 
-    -- Check to see if the inputs are all synonyms
+    -- Get the name of the level so we can find it in tables
+    SELECT r.name FROM taxonomy.rank r INTO level_name WHERE r.id = level;
+
+    -- Check to see if the input is not current
     EXECUTE
-        format('SELECT COUNT(*) FROM taxonomy.%I WHERE id = current AND id = ($1)', level)
+        format('SELECT COUNT(*) FROM taxonomy.%I WHERE id = current AND id = ($1)', level_name)
         INTO c
         USING input
     ;
@@ -40,7 +45,7 @@ BEGIN
 
     -- Check that the output is current
     EXECUTE
-        format('SELECT COUNT(*) FROM taxonomy.%I WHERE id != current AND id = ($1)', level)
+        format('SELECT COUNT(*) FROM taxonomy.%I WHERE id != current AND id = ($1)', level_name)
         INTO c
         USING output
     ;
@@ -52,13 +57,13 @@ BEGIN
 
     -- For each child
     FOR f in EXECUTE 
-        format('SELECT id FROM taxonomy.%I WHERE id = current AND parent = $1', child_level)
+        format('SELECT id FROM taxonomy.%I WHERE id = current AND parent = $1', child_level_name)
         USING input
 
     LOOP
         -- Create the new understanding under the new parent and return the id
         EXECUTE
-        format('INSERT INTO taxonomy.%I (name, author year, parent) RETURNING id',child_level)
+        format('INSERT INTO taxonomy.%I (name, author year, parent) RETURNING id',child_level_name)
         USING f.name, f.author, f.year, f.parent
         INTO c;
 
