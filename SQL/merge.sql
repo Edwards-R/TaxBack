@@ -3,14 +3,14 @@
 -- create sub-functions that call this one with prepared level prefixes e.g. CS_Merge_Species
 -- This is ugly though and I don't like it.
 
--- Example call: CALL cs_merge(5, 7, ARRAY[1,2,3], 'junk', 'junker', 2022)
+-- Example call: CALL cs_merge(5, ARRAY[1,2,3], 'junk', 'junker', 2022,7)
 CREATE OR REPLACE PROCEDURE cs_merge(
 	level_id int,
-	parent int,
 	inputs int ARRAY,
 	name text,
 	author text,
-	year int
+	year int,
+	parent int
 )
 LANGUAGE plpgsql
 AS $$
@@ -22,12 +22,16 @@ BEGIN
 -- Start by fetching the name of the rank
 SELECT r.name FROM taxonomy.rank r INTO level WHERE r.id = level_id;
 
+raise notice '%', level;
+
 -- Check that the inputs have the same parent
 EXECUTE
-	format('SELECT COUNT(*) FROM taxonomy.%I WHERE id = ANY ($1) GROUP BY parent', level)
+	format('SELECT COUNT(distinct(parent)) FROM taxonomy.%I WHERE id = ANY ($1)', level)
 	into c
 	USING inputs
 ;
+
+raise notice '%', c;
 
 IF (c !=1) THEN
 	RAISE EXCEPTION 'Inputs must belong to the same parent taxon';
@@ -53,8 +57,8 @@ EXECUTE
 ;
 
 -- Update the old to redirect to the new
-EXCUTE
-	format('UPDATE taxonomy.%I SET current = $1 WHERE id = AND ($2)', level)
+EXECUTE
+	format('UPDATE taxonomy.%I SET current = $1 WHERE id = ANY ($2)', level)
 	USING c, inputs
 ;
 
