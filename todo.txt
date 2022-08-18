@@ -1,1 +1,18 @@
-Working on the SQL for merge operation then hopefully splits. Splits are much harder as they are recursive so that's a learning cliff
+Running SQL tests on merge and update
+From a clean clone, merge two taxa and then pick one to run update_children on.
+For example, merge superfamilies (rank 2) 6,7 together, then run update children on 6 
+
+CALL cs_update_children(
+	2,
+	6,
+	10,
+	'Tester',
+	2022
+)
+
+This will update all the children
+
+In a lottery-winning chance, I found a glitch in the data.
+
+Lasius psammophilus has two current understandings: 270 and 277. Need to get a good understanding on what and why these exist. They shouldn't.
+Fix this, then re-clone, then re-run tests
