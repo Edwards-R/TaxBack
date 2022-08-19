@@ -15,7 +15,7 @@ AS $$
 DECLARE
     c int;
     level_name text;
-    child_level_name text;
+    child_level record;
     f record;
 BEGIN
 
@@ -26,7 +26,7 @@ BEGIN
     END IF;
 
     -- There's a child level, so get the name so we can find the tables
-    SELECT r.name FROM taxonomy.rank r INTO child_level_name WHERE r.major_parent = level;
+    SELECT r.id, r.name FROM taxonomy.rank r INTO child_level WHERE r.major_parent = level;
 
     -- Get the name of the level so we can find it in tables
     SELECT r.name FROM taxonomy.rank r INTO level_name WHERE r.id = level;
@@ -57,18 +57,18 @@ BEGIN
 
     -- For each child
     FOR f in EXECUTE 
-        format('SELECT id FROM taxonomy.%I WHERE id = current AND parent = $1', child_level_name)
+        format('SELECT id, name FROM taxonomy.%I WHERE id = current AND parent = $1', child_level.name)
         USING input
 
     LOOP
         -- Create the new understanding under the new parent and return the id
         EXECUTE
-        format('INSERT INTO taxonomy.%I (name, author year, parent) RETURNING id',child_level_name)
-        USING f.name, f.author, f.year, f.parent
+        format('INSERT INTO taxonomy.%I (name, author, year, parent) VALUES ($1, $2, $3, $4) RETURNING id',child_level.name)
+        USING f.name, author, year, output
         INTO c;
 
         -- Now update try to update the children
-        CALL cs_update_children(child_level, f.id, c, author, year);
+        CALL cs_update_children(child_level.id, f.id, c, author, year);
 
     END LOOP;
 
