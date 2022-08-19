@@ -16,6 +16,3 @@ In a lottery-winning chance, I found a glitch in the data.
 
 Lasius psammophilus has two current understandings: 270 and 277. Need to get a good understanding on what and why these exist. They shouldn't.
 Fix this, then re-clone, then re-run tests
-
-
-L.psammophilus 277 synonymised to 270
