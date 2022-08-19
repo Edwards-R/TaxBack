@@ -67,6 +67,11 @@ BEGIN
         USING f.name, author, year, output
         INTO c;
 
+        -- Update the old to direct to the new
+        EXECUTE
+        format('UPDATE taxonomy.%I SET current = $1 WHERE current = $2', child_level.name)
+        USING c, f.id;
+
         -- Now update try to update the children
         CALL cs_update_children(child_level.id, f.id, c, author, year);
 
