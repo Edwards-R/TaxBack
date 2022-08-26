@@ -6,13 +6,13 @@
 CREATE OR REPLACE PROCEDURE cs_update_children(
     level int,
     input int,
-    output int,
-    author text,
-    year int
+    output int
 )
 LANGUAGE plpgsql
 AS $$
 DECLARE
+    author text;
+    year int;
     c int;
     level_name text;
     child_level record;
@@ -55,9 +55,29 @@ BEGIN
         RAISE EXCEPTION 'Output may not be a synonym';
     END IF;
 
+    -- Get the author and year of the parent so that it propagates
+    EXECUTE
+        format('SELECT author, year FROM taxonomy.%I WHERE id = $1', level_name)
+        INTO author, year
+        USING input
+    ;
+
     -- For each child
     FOR f in EXECUTE 
-        format('SELECT id, name FROM taxonomy.%I WHERE id = current AND parent = $1', child_level.name)
+        format(
+                'SELECT x.id, x.name FROM ( '
+                    'SELECT t.id, t.name, count(c.*) '
+                    'FROM taxonomy.%I t '
+                    'JOIN taxonomy.%I_composition c ON t.id = c.subject '
+                    'WHERE t.id=t.current '
+                    'AND t.parent = $1 '
+                    'GROUP BY t.id '
+                ') as x '
+                'WHERE count = 1'
+            ,
+            child_level.name,
+            child_level.name
+        )
         USING input
 
     LOOP
