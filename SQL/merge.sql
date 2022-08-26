@@ -17,6 +17,7 @@ AS $$
 DECLARE
 	level text;
 	c int;
+	_elem int; -- Used in for loop
 BEGIN
 
 -- Start by fetching the name of the rank
@@ -61,6 +62,10 @@ EXECUTE
 -- Push the current children of the inputs into the new taxa
 
 -- FILL THIS IN --
+FOREACH _elem IN ARRAY inputs
+LOOP 
+   	CALL cs_update_children(level_id, _elem, c);
+END LOOP;
 
 -- Stuff goes here
 END; $$
