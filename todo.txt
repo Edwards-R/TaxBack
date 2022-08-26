@@ -15,21 +15,13 @@ CALL cs_update_children(
 	2,
 	6,
 	8
-)
+);
 
-This will update all the children
+SELECT s.*
+FROM taxonomy.species s
+JOIN taxonomy.genus g on s.parent = g.id
+JOIN taxonomy.family f on g.parent = f.id
+JOIN taxonomy.superfamily sf on f.parent = sf.id
+WHERE Sf.id=8
 
-In a lottery-winning chance, I found a glitch in the data.
-
-Lasius psammophilus has two current understandings: 270 and 277. Need to get a good understanding on what and why these exist. They shouldn't.
-Fix this, then re-clone, then re-run tests
-
-
-L.psammophilus 277 synonymised to 270
-
-update_children ran without error. Took 121ms, which is WAY faster than I expected.
-
-Seems to have worked perfectly. I'm suspicious, but can't find any problems, other than it including aggregates which was up in the air anyway.
-
-Aggregates need to be removed. They don't exist under the new understanding as aggregates are by definition bound to their creation parent.
-Understanding the current meaning of an aggregate understanding is the job of the composition table, so it is safe to retire aggregate understandings
+Code isn't looping.

@@ -59,8 +59,10 @@ BEGIN
     EXECUTE
         format('SELECT author, year FROM taxonomy.%I WHERE id = $1', level_name)
         INTO author, year
-        USING input
+        USING output
     ;
+
+    RAISE NOTICE '% %', author, year;
 
     -- For each child
     FOR f in EXECUTE 
@@ -93,7 +95,7 @@ BEGIN
         USING c, f.id;
 
         -- Now update try to update the children
-        CALL cs_update_children(child_level.id, f.id, c, author, year);
+        CALL cs_update_children(child_level.id, f.id, c);
 
     END LOOP;
 

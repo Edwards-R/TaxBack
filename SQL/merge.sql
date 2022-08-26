@@ -22,16 +22,12 @@ BEGIN
 -- Start by fetching the name of the rank
 SELECT r.name FROM taxonomy.rank r INTO level WHERE r.id = level_id;
 
-raise notice '%', level;
-
 -- Check that the inputs have the same parent
 EXECUTE
 	format('SELECT COUNT(distinct(parent)) FROM taxonomy.%I WHERE id = ANY ($1)', level)
 	into c
 	USING inputs
 ;
-
-raise notice '%', c;
 
 IF (c !=1) THEN
 	RAISE EXCEPTION 'Inputs must belong to the same parent taxon';
@@ -64,8 +60,7 @@ EXECUTE
 
 -- Push the current children of the inputs into the new taxa
 
-
-raise notice '%', c;
+-- FILL THIS IN --
 
 -- Stuff goes here
 END; $$
