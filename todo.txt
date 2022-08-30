@@ -1,27 +1,2 @@
-Running SQL tests on merge and update
-From a clean clone, merge two taxa and then pick one to run update_children on.
-For example, merge superfamilies (rank 2) 6,7 together, then run update children on 6 
+TO do: Splitting!
 
-CALL cs_merge(
-	2,
-	ARRAY[6,7],
-	'TestTaxon',
-	'Tester',
-	2022,
-	1
-);
-
-CALL cs_update_children(
-	2,
-	6,
-	8
-);
-
-SELECT s.*
-FROM taxonomy.species s
-JOIN taxonomy.genus g on s.parent = g.id
-JOIN taxonomy.family f on g.parent = f.id
-JOIN taxonomy.superfamily sf on f.parent = sf.id
-WHERE Sf.id=8
-
-Code isn't looping.

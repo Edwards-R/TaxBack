@@ -17,7 +17,7 @@ DECLARE
     level_name text;
     child_level record;
     f record;
-BEGIN
+BEGINfg
 
     -- Check to see if there is a child level
     IF (SELECT COUNT(*) FROM taxonomy.rank WHERE major_parent = level) = 0
