@@ -2,8 +2,9 @@ DROP TYPE IF EXISTS split_item CASCADE;
 
 CREATE TYPE split_item AS (
     name TEXT,
-    children int ARRAY
+    children INT ARRAY
 );
+
 
 CREATE OR REPLACE PROCEDURE cs_split(
     level_id INT,
@@ -43,12 +44,18 @@ BEGIN
         RAISE EXCEPTION 'There must be multiple destination outputs';
     END IF;
 
+    -- Check to see if every child of the subject is present once and only once in the destinations
+
+    
+
     -- We already grabbed the details of the subject so create the aggregate
 
     -- Because of memory management stuff we have to modify the name to '+agg' first
     subject.name = subject.name + ' agg';
 
+    -- Make the aggregate and return the ID
     EXECUTE
-        format('INSERT INTO taxonomy.%I (name, author, year, parent) VALUES ($1, $2, $3, $4)', level.name)
+        format('INSERT INTO taxonomy.%I (name, author, year, parent) VALUES ($1, $2, $3, $4) RETURNING id', level.name)
+        INTO c
         USING subject.name, author, year, subject.parent;
 END; $$

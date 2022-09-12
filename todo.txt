@@ -1,2 +1,36 @@
 TO do: Splitting!
 
+DROP TYPE IF EXISTS test_item CASCADE;
+
+CREATE TYPE test_item AS (
+    name TEXT,
+    num INT
+);
+
+select 
+((q.x)::test_item).name, -- explicit conversion
+(q.x).num         -- implicit conversion
+from
+(
+ select
+ unnest(array[('Sample 1', 1),
+              ('Sample 2', 2), 
+              ('Sample 3', 3)]::test_item[]) as x
+) q;
+
+
+This code is the basis for the management of split_items.
+
+TO get all the children placed into a split_item[]:
+
+SELECT 
+unnest((q.x).children)
+FROM (
+	SELECT UNNEST(
+		ARRAY[
+			('first', ARRAY[1,2,3,4]),
+			('second', ARRAY[5,6,7])
+		]::split_item[]
+	)
+	as x
+) q;
