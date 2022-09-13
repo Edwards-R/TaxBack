@@ -24,7 +24,7 @@ This code is the basis for the management of split_items.
 TO get all the children placed into a split_item[]:
 
 SELECT 
-unnest((q.x).children)
+unnest((y.x).children)
 FROM (
 	SELECT UNNEST(
 		ARRAY[
@@ -33,4 +33,4 @@ FROM (
 		]::split_item[]
 	)
 	as x
-) q;
+) as y
