@@ -65,22 +65,7 @@ BEGINfg
     RAISE NOTICE '% %', author, year;
 
     -- For each child
-    FOR f in EXECUTE 
-        format(
-                'SELECT x.id, x.name FROM ( '
-                    'SELECT t.id, t.name, count(c.*) '
-                    'FROM taxonomy.%I t '
-                    'JOIN taxonomy.%I_composition c ON t.id = c.subject '
-                    'WHERE t.id=t.current '
-                    'AND t.parent = $1 '
-                    'GROUP BY t.id '
-                ') as x '
-                'WHERE count = 1'
-            ,
-            child_level.name,
-            child_level.name
-        )
-        USING input
+    FOR f in SELECT * FROM cs_fetch_valid_children(level, input)
 
     LOOP
         -- Create the new understanding under the new parent and return the id

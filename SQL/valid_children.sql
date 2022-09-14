@@ -12,7 +12,8 @@ CREATE OR REPLACE FUNCTION cs_fetch_valid_children(
     parent INT
 )
 RETURNS TABLE (
-    id INT
+    id INT,
+    name TEXT
 )
 LANGUAGE plpgsql
 AS $$
@@ -24,8 +25,8 @@ BEGIN
 
     -- Return the ids of the valid children
     RETURN QUERY EXECUTE format(
-        'SELECT x.id FROM (
-            SELECT t.id, count(c.*) 
+        'SELECT x.id, x.name FROM (
+            SELECT t.id, t.name, count(c.*) 
             FROM taxonomy.%I t 
             JOIN taxonomy.%I_composition c ON t.id = c.subject 
             WHERE t.id=t.current 
